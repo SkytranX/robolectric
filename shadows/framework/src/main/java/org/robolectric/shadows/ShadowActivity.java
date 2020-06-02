@@ -21,6 +21,7 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.database.Cursor;
+import android.os.Build.VERSION;
 import android.os.Bundle;
 import android.text.Selection;
 import android.text.SpannableStringBuilder;
@@ -454,6 +455,26 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
   }
 
   /** For internal use only. Not for public use. */
+  public void callDispatchActivityResult(String who, int requestCode, int resultCode, Intent data) {
+    final ActivityInvoker invoker = new ActivityInvoker();
+    if (VERSION.SDK_INT > 27) {
+      invoker
+          .call(
+              "dispatchActivityResult",
+              String.class,
+              Integer.TYPE,
+              Integer.TYPE,
+              Intent.class,
+              String.class)
+          .with(who, requestCode, resultCode, data, "ACTIVITY_RESULT");
+    } else {
+      invoker
+          .call("dispatchActivityResult", String.class, Integer.TYPE, Integer.TYPE, Intent.class)
+          .with(who, requestCode, resultCode, data);
+    }
+  }
+
+  /** For internal use only. Not for public use. */
   public <T extends Activity> void attachController(ActivityController controller) {
     this.controller = controller;
   }
@@ -527,7 +548,9 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
       if (bundle == null) {
         invoker.call("onPrepareDialog", Integer.TYPE, Dialog.class).with(id, dialog);
       } else {
-        invoker.call("onPrepareDialog", Integer.TYPE, Dialog.class, Bundle.class).with(id, dialog, bundle);
+        invoker
+            .call("onPrepareDialog", Integer.TYPE, Dialog.class, Bundle.class)
+            .with(id, dialog, bundle);
       }
 
       dialogForId.put(id, dialog);
@@ -605,6 +628,7 @@ public class ShadowActivity extends ShadowContextThemeWrapper {
   @Implementation(minSdk = M)
   protected final void requestPermissions(String[] permissions, int requestCode) {
     lastRequestedPermission = new PermissionsRequest(permissions, requestCode);
+    directlyOn(realActivity, Activity.class).requestPermissions(permissions, requestCode);
   }
 
   /**
